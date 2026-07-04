@@ -135,7 +135,7 @@ export class Game {
         this.world.update(this.time.getElapsed(), this.time.getDelta());
       }
 
-      this.view.update(this.playerPosition);
+      this.view.update(this.playerPosition, this.time.getElapsed());
       this.postProcessing.update(this.time.getElapsed());
       this.postProcessing.render();
     } catch (err) {
