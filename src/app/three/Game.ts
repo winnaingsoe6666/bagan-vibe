@@ -111,7 +111,7 @@ export class Game {
     // Character (depends on world being created first for terrain)
     this.character = new Character(this.scene, this.time, useWebGPU);
 
-    // Post-processing (tone mapping + fill lights)
+    // Post-processing (EffectComposer: bloom, AA, vignette, grain, color grading)
     this.postProcessing = new PostProcessing(
       this.renderer.instance,
       this.scene,
