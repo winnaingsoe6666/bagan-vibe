@@ -16,10 +16,10 @@ type AnyRenderer = THREE.WebGPURenderer | WebGLRenderer;
 /**
  * Post-processing pipeline.
  *
- * Attempts EffectComposer on both WebGPU and WebGL.
- * WebGPU: Three.js r171+ WebGPURenderer supports EffectComposer via GLSL-to-WGSL compilation.
  * WebGL: EffectComposer with bloom + vignette + grain + color grading.
- * Falls back to direct render if EffectComposer fails to initialize.
+ * WebGPU: Direct render — ShaderMaterial (used by EffectComposer passes)
+ *         is incompatible with WebGPU's NodeMaterial system.
+ *         Visual quality comes from GhibliMaterial cel-shading + lighting.
  */
 export class PostProcessing {
   private renderer: AnyRenderer;
@@ -27,7 +27,7 @@ export class PostProcessing {
   private camera: THREE.PerspectiveCamera;
   private useWebGPU: boolean;
 
-  // EffectComposer (used on both WebGPU and WebGL when available)
+  // EffectComposer (WebGL only)
   private composer: EffectComposer | null = null;
   private filmGrainPass: ShaderPass | null = null;
 
@@ -45,8 +45,14 @@ export class PostProcessing {
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.15;
 
-    // Attempt EffectComposer on both WebGPU and WebGL
-    this.buildComposer();
+    if (this.useWebGPU) {
+      // WebGPU: ShaderMaterial incompatible with NodeMaterial system
+      // Visual quality from GhibliMaterial cel-shading + multi-light setup
+      console.log('PostProcessing: WebGPU — direct render (cel-shading materials + lighting)');
+    } else {
+      // WebGL: full EffectComposer pipeline
+      this.buildComposer();
+    }
   }
 
   private buildComposer(): void {
@@ -84,13 +90,9 @@ export class PostProcessing {
       colorGradingPass.uniforms.contrast.value = 1.02;
       this.composer.addPass(colorGradingPass);
 
-      // Note: OutputPass removed — renderer handles tone mapping and output encoding
-      // on both WebGPU and WebGL. OutputPass would double-apply tone mapping.
-
-      const mode = this.useWebGPU ? 'WebGPU' : 'WebGL';
-      console.log(`PostProcessing: ${mode} EffectComposer pipeline ready (bloom + vignette + grain + color grading)`);
+      console.log('PostProcessing: WebGL EffectComposer pipeline ready');
     } catch (err) {
-      console.warn('PostProcessing: EffectComposer failed, falling back to direct render:', err);
+      console.warn('PostProcessing: EffectComposer failed, falling back:', err);
       this.composer = null;
     }
   }
