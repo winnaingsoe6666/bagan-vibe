@@ -13,21 +13,18 @@ export class Renderer {
       this.instance = new THREE.WebGPURenderer({
         canvas,
         antialias: true,
-        powerPreference: 'high-performance',
-        // Use full device pixel ratio for crisp rendering on high-DPI screens
-        pixelRatio: Math.min(window.devicePixelRatio, 2)
+        powerPreference: 'high-performance'
       });
     } else {
       this.instance = new WebGLRenderer({
         canvas,
         antialias: true,
-        powerPreference: 'high-performance',
-        // Use full device pixel ratio for crisp rendering on high-DPI screens
-        pixelRatio: Math.min(window.devicePixelRatio, 2)
+        powerPreference: 'high-performance'
       });
     }
 
     this.instance.setSize(window.innerWidth, window.innerHeight);
+    this.instance.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
     // Ghibli tone mapping: slightly overexposed for that warm, dreamy afternoon glow
     // ACES Filmic with 1.15 gives soft highlight rolloff without crushing shadows
