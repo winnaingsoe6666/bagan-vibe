@@ -1,6 +1,7 @@
 import * as THREE from 'three/webgpu';
 import { createPetalMaterial } from '../Shaders/PetalMaterial';
 import { createFallbackPetalMaterial } from '../Shaders/FallbackMaterials';
+import { GhibliMaterial } from '../Shaders/GhibliMaterial';
 
 export class Tree {
   scene: THREE.Scene;
@@ -19,18 +20,44 @@ export class Tree {
   }
 
   private createTree(useWebGPU: boolean): void {
-    const StdMat = useWebGPU ? THREE.MeshStandardNodeMaterial : THREE.MeshStandardMaterial;
+    // Helper to create GhibliMaterial (WebGPU) or fallback MeshStandardMaterial (WebGL)
+    const mat = (opts: {
+      color: number;
+      shadowColor?: number;
+      highlightColor?: number;
+      emissiveStrength?: number;
+      rimStrength?: number;
+      roughness?: number;
+      metalness?: number;
+      emissive?: number;
+      emissiveIntensity?: number;
+    }) => {
+      if (useWebGPU) {
+        return new GhibliMaterial({
+          color: opts.color,
+          shadowColor: opts.shadowColor,
+          highlightColor: opts.highlightColor,
+          emissiveStrength: opts.emissiveStrength,
+          rimStrength: opts.rimStrength,
+        });
+      }
+      return new THREE.MeshStandardMaterial({
+        color: new THREE.Color(opts.color),
+        roughness: opts.roughness ?? 1.0,
+        metalness: opts.metalness ?? 0.0,
+        ...(opts.emissive !== undefined ? {
+          emissive: new THREE.Color(opts.emissive),
+          emissiveIntensity: opts.emissiveIntensity ?? 0.1,
+        } : {}),
+      });
+    };
 
     // ============================================================
     // MAIN TRUNK - thick, ancient, multi-segment for organic feel
     // ============================================================
     const trunkGroup = new THREE.Group();
 
-    const trunkMat = new StdMat({
-      color: new THREE.Color(0x5c3a1e),
-      roughness: 1.0,
-      metalness: 0.0,
-    });
+    const trunkMat = mat({ color: 0x5c3a1e, shadowColor: 0x3a1e0a });
 
     // Core trunk segments stacked with slight offsets for gnarled look
     const trunkSegments = [
@@ -51,11 +78,7 @@ export class Tree {
     }
 
     // Bark texture bumps - small cylinders along trunk for rough bark
-    const barkMat = new StdMat({
-      color: new THREE.Color(0x4a2e14),
-      roughness: 1.0,
-      metalness: 0.0,
-    });
+    const barkMat = mat({ color: 0x4a2e14, shadowColor: 0x2a1408 });
 
     for (let i = 0; i < 20; i++) {
       const angle = Math.random() * Math.PI * 2;
@@ -79,17 +102,9 @@ export class Tree {
     // ============================================================
     // BRANCHES - curved, organic, with sub-branches
     // ============================================================
-    const branchMat = new StdMat({
-      color: new THREE.Color(0x6b4226),
-      roughness: 1.0,
-      metalness: 0.0,
-    });
+    const branchMat = mat({ color: 0x6b4226, shadowColor: 0x4a2e14 });
 
-    const branchDarkMat = new StdMat({
-      color: new THREE.Color(0x553518),
-      roughness: 1.0,
-      metalness: 0.0,
-    });
+    const branchDarkMat = mat({ color: 0x553518, shadowColor: 0x3a2510 });
 
     // Main branches radiating from upper trunk
     const mainBranches = [
@@ -136,29 +151,11 @@ export class Tree {
     // ============================================================
     // FOLIAGE - IcosahedronGeometry clusters for organic look
     // ============================================================
-    const foliageDarkMat = new StdMat({
-      color: new THREE.Color(0x1e6b14),
-      roughness: 0.9,
-      metalness: 0.0,
-      emissive: new THREE.Color(0x0f3a0a),
-      emissiveIntensity: 0.05,
-    });
+    const foliageDarkMat = mat({ color: 0x1e6b14, shadowColor: 0x0f3a0a, highlightColor: 0x4aaf30 });
 
-    const foliageMidMat = new StdMat({
-      color: new THREE.Color(0x2d7a1e),
-      roughness: 0.9,
-      metalness: 0.0,
-      emissive: new THREE.Color(0x1a4a10),
-      emissiveIntensity: 0.05,
-    });
+    const foliageMidMat = mat({ color: 0x2d7a1e, shadowColor: 0x1a4a10, highlightColor: 0x5ac040 });
 
-    const foliageLightMat = new StdMat({
-      color: new THREE.Color(0x3d8a2e),
-      roughness: 0.85,
-      metalness: 0.0,
-      emissive: new THREE.Color(0x2a5a1a),
-      emissiveIntensity: 0.08,
-    });
+    const foliageLightMat = mat({ color: 0x3d8a2e, shadowColor: 0x2a5a1a, highlightColor: 0x6ad050 });
 
     const foliageMats = [foliageDarkMat, foliageMidMat, foliageLightMat];
 
@@ -220,21 +217,9 @@ export class Tree {
     // ============================================================
     // GOLDEN PADAUK FLOWER CLUSTERS
     // ============================================================
-    const flowerMat = new StdMat({
-      color: new THREE.Color(0xffb800),
-      roughness: 0.5,
-      metalness: 0.1,
-      emissive: new THREE.Color(0xffa000),
-      emissiveIntensity: 0.4,
-    });
+    const flowerMat = mat({ color: 0xffb800, emissiveStrength: 0.35, rimStrength: 0.8 });
 
-    const flowerDeepMat = new StdMat({
-      color: new THREE.Color(0xff8c00),
-      roughness: 0.5,
-      metalness: 0.1,
-      emissive: new THREE.Color(0xff6600),
-      emissiveIntensity: 0.35,
-    });
+    const flowerDeepMat = mat({ color: 0xff8c00, emissiveStrength: 0.3 });
 
     const flowerPositions: [number, number, number, number][] = [
       [-3, 12.5, -2, 2],
@@ -282,17 +267,9 @@ export class Tree {
     // ============================================================
     // ROOT SYSTEM - thick, gnarled, reaching into ground
     // ============================================================
-    const rootMat = new StdMat({
-      color: new THREE.Color(0x4a2a10),
-      roughness: 1.0,
-      metalness: 0.0,
-    });
+    const rootMat = mat({ color: 0x4a2a10, shadowColor: 0x2a1408 });
 
-    const rootLightMat = new StdMat({
-      color: new THREE.Color(0x5c3818),
-      roughness: 1.0,
-      metalness: 0.0,
-    });
+    const rootLightMat = mat({ color: 0x5c3818, shadowColor: 0x3a2010 });
 
     // Primary roots - thick, visible above ground
     for (let i = 0; i < 10; i++) {

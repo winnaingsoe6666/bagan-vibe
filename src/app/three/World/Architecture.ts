@@ -1,4 +1,5 @@
 import * as THREE from 'three/webgpu';
+import { GhibliMaterial } from '../Shaders/GhibliMaterial';
 
 export class Architecture {
   scene: THREE.Scene;
@@ -14,46 +15,50 @@ export class Architecture {
 
   private createHouse(useWebGPU: boolean): void {
     const houseGroup = new THREE.Group();
-    const StdMat = useWebGPU ? THREE.MeshStandardNodeMaterial : THREE.MeshStandardMaterial;
+
+    const mat = (opts: {
+      color: number;
+      shadowColor?: number;
+      highlightColor?: number;
+      emissiveStrength?: number;
+      rimStrength?: number;
+      roughness?: number;
+      metalness?: number;
+      emissive?: number;
+      emissiveIntensity?: number;
+    }) => {
+      if (useWebGPU) {
+        return new GhibliMaterial({
+          color: opts.color,
+          shadowColor: opts.shadowColor,
+          highlightColor: opts.highlightColor,
+          emissiveStrength: opts.emissiveStrength,
+          rimStrength: opts.rimStrength,
+        });
+      }
+      return new THREE.MeshStandardMaterial({
+        color: new THREE.Color(opts.color),
+        roughness: opts.roughness ?? 1.0,
+        metalness: opts.metalness ?? 0.0,
+        ...(opts.emissive !== undefined ? {
+          emissive: new THREE.Color(opts.emissive),
+          emissiveIntensity: opts.emissiveIntensity ?? 0.1,
+        } : {}),
+      });
+    };
 
     // --- Materials ---
-    const woodMat = new StdMat({
-      color: new THREE.Color(0x8b5e3c),
-      roughness: 0.9,
-      metalness: 0.0,
-    });
+    const woodMat = mat({ color: 0x8b5e3c });
 
-    const woodDarkMat = new StdMat({
-      color: new THREE.Color(0x6b4226),
-      roughness: 0.95,
-      metalness: 0.0,
-    });
+    const woodDarkMat = mat({ color: 0x6b4226, shadowColor: 0x4a2e14 });
 
-    const wallMat = new StdMat({
-      color: new THREE.Color(0xf5e6c8),
-      roughness: 0.85,
-      metalness: 0.0,
-    });
+    const wallMat = mat({ color: 0xf5e6c8 });
 
-    const roofMat = new StdMat({
-      color: new THREE.Color(0x5a3520),
-      roughness: 0.8,
-      metalness: 0.05,
-      emissive: new THREE.Color(0x2a1510),
-      emissiveIntensity: 0.05,
-    });
+    const roofMat = mat({ color: 0x5a3520, shadowColor: 0x3a1510 });
 
-    const roofTileMat = new StdMat({
-      color: new THREE.Color(0x6b4030),
-      roughness: 0.75,
-      metalness: 0.05,
-    });
+    const roofTileMat = mat({ color: 0x6b4030 });
 
-    const thatchMat = new StdMat({
-      color: new THREE.Color(0x9a7a50),
-      roughness: 0.95,
-      metalness: 0.0,
-    });
+    const thatchMat = mat({ color: 0x9a7a50 });
 
     // --- Main house body ---
     const bodyGeom = new THREE.BoxGeometry(5, 3, 4);
@@ -64,11 +69,7 @@ export class Architecture {
     houseGroup.add(body);
 
     // Wall detail panels (inset sections)
-    const panelMat = new StdMat({
-      color: new THREE.Color(0xe8d4b0),
-      roughness: 0.88,
-      metalness: 0.0,
-    });
+    const panelMat = mat({ color: 0xe8d4b0 });
 
     // Front wall panels
     for (let i = -1; i <= 1; i++) {
@@ -142,11 +143,7 @@ export class Architecture {
 
       // Pillar base stone
       const baseGeom = new THREE.CylinderGeometry(0.2, 0.22, 0.2, 8);
-      const base = new THREE.Mesh(baseGeom, new StdMat({
-        color: new THREE.Color(0x999988),
-        roughness: 0.95,
-        metalness: 0.0,
-      }));
+      const base = new THREE.Mesh(baseGeom, mat({ color: 0x999988 }));
       base.position.set(px, 0.1, pz);
       houseGroup.add(base);
 
@@ -180,25 +177,11 @@ export class Architecture {
     }
 
     // --- Windows with warm glow and shutters ---
-    const windowMat = new StdMat({
-      color: new THREE.Color(0x87ceeb),
-      emissive: new THREE.Color(0xffd700),
-      emissiveIntensity: 0.4,
-      roughness: 0.3,
-      metalness: 0.1,
-    });
+    const windowMat = mat({ color: 0x87ceeb, emissive: 0xffd700, emissiveIntensity: 0.4 });
 
-    const frameMat = new StdMat({
-      color: new THREE.Color(0x5c3317),
-      roughness: 0.9,
-      metalness: 0.0,
-    });
+    const frameMat = mat({ color: 0x5c3317 });
 
-    const shutterMat = new StdMat({
-      color: new THREE.Color(0x7a5030),
-      roughness: 0.9,
-      metalness: 0.0,
-    });
+    const shutterMat = mat({ color: 0x7a5030 });
 
     const windowPositions = [
       { x: 5, y: 2.2, z: 4.02, ry: 0 },
@@ -242,11 +225,7 @@ export class Architecture {
     }
 
     // --- Door ---
-    const doorMat = new StdMat({
-      color: new THREE.Color(0x5c3317),
-      roughness: 0.95,
-      metalness: 0.0,
-    });
+    const doorMat = mat({ color: 0x5c3317 });
     const doorGeom = new THREE.BoxGeometry(1.1, 2.1, 0.08);
     const door = new THREE.Mesh(doorGeom, doorMat);
     door.position.set(7, 1.05, 4.02);
@@ -260,11 +239,7 @@ export class Architecture {
 
     // Door handle
     const handleGeom = new THREE.SphereGeometry(0.06, 8, 6);
-    const handleMat = new StdMat({
-      color: new THREE.Color(0x888888),
-      roughness: 0.3,
-      metalness: 0.7,
-    });
+    const handleMat = mat({ color: 0x888888 });
     const handle = new THREE.Mesh(handleGeom, handleMat);
     handle.position.set(7.35, 1.1, 4.1);
     houseGroup.add(handle);
@@ -286,11 +261,7 @@ export class Architecture {
     }
 
     // Porch railing posts
-    const railingMat = new StdMat({
-      color: new THREE.Color(0x7a5030),
-      roughness: 0.9,
-      metalness: 0.0,
-    });
+    const railingMat = mat({ color: 0x7a5030 });
 
     for (let i = -2; i <= 2; i++) {
       // Front railing
@@ -313,11 +284,7 @@ export class Architecture {
     houseGroup.add(railBottom);
 
     // --- Fence around property ---
-    const fenceMat = new StdMat({
-      color: new THREE.Color(0x8b6a4a),
-      roughness: 0.9,
-      metalness: 0.0,
-    });
+    const fenceMat = mat({ color: 0x8b6a4a });
 
     // Front fence
     for (let i = -3; i <= 3; i++) {
@@ -346,19 +313,9 @@ export class Architecture {
     }
 
     // --- Lanterns ---
-    const lanternMat = new StdMat({
-      color: new THREE.Color(0xffaa44),
-      emissive: new THREE.Color(0xff8800),
-      emissiveIntensity: 0.6,
-      roughness: 0.3,
-      metalness: 0.2,
-    });
+    const lanternMat = mat({ color: 0xffaa44, emissive: 0xff8800, emissiveStrength: 0.3 });
 
-    const lanternFrameMat = new StdMat({
-      color: new THREE.Color(0x5c3317),
-      roughness: 0.9,
-      metalness: 0.0,
-    });
+    const lanternFrameMat = mat({ color: 0x5c3317 });
 
     for (const xOff of [-2, 0, 2]) {
       // Lantern body
@@ -378,35 +335,44 @@ export class Architecture {
   }
 
   private createTemples(useWebGPU: boolean): void {
-    const StdMat = useWebGPU ? THREE.MeshStandardNodeMaterial : THREE.MeshStandardMaterial;
+    const mat = (opts: {
+      color: number;
+      shadowColor?: number;
+      highlightColor?: number;
+      emissiveStrength?: number;
+      rimStrength?: number;
+      roughness?: number;
+      metalness?: number;
+      emissive?: number;
+      emissiveIntensity?: number;
+    }) => {
+      if (useWebGPU) {
+        return new GhibliMaterial({
+          color: opts.color,
+          shadowColor: opts.shadowColor,
+          highlightColor: opts.highlightColor,
+          emissiveStrength: opts.emissiveStrength,
+          rimStrength: opts.rimStrength,
+        });
+      }
+      return new THREE.MeshStandardMaterial({
+        color: new THREE.Color(opts.color),
+        roughness: opts.roughness ?? 1.0,
+        metalness: opts.metalness ?? 0.0,
+        ...(opts.emissive !== undefined ? {
+          emissive: new THREE.Color(opts.emissive),
+          emissiveIntensity: opts.emissiveIntensity ?? 0.1,
+        } : {}),
+      });
+    };
 
-    const templeMat = new StdMat({
-      color: new THREE.Color(0xc4a265),
-      roughness: 0.85,
-      metalness: 0.05,
-      emissive: new THREE.Color(0x8a6a3a),
-      emissiveIntensity: 0.05,
-    });
+    const templeMat = mat({ color: 0xc4a265, shadowColor: 0x8a6a3a });
 
-    const templeDarkMat = new StdMat({
-      color: new THREE.Color(0xa0804a),
-      roughness: 0.9,
-      metalness: 0.0,
-    });
+    const templeDarkMat = mat({ color: 0xa0804a });
 
-    const templeLightMat = new StdMat({
-      color: new THREE.Color(0xd4b878),
-      roughness: 0.8,
-      metalness: 0.05,
-    });
+    const templeLightMat = mat({ color: 0xd4b878 });
 
-    const goldMat = new StdMat({
-      color: new THREE.Color(0xd4a520),
-      roughness: 0.4,
-      metalness: 0.6,
-      emissive: new THREE.Color(0xb8860b),
-      emissiveIntensity: 0.2,
-    });
+    const goldMat = mat({ color: 0xd4a520, emissiveStrength: 0.2, rimStrength: 0.5 });
 
     // Temple configs: { x, z, scale, height, variant }
     const templeConfigs = [

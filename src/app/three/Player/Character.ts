@@ -1,6 +1,7 @@
 import * as THREE from 'three/webgpu';
 import { Input } from './Input';
 import { Time } from '../Utils/Time';
+import { GhibliMaterial } from '../Shaders/GhibliMaterial';
 
 export class Character {
   scene: THREE.Scene;
@@ -47,20 +48,20 @@ export class Character {
 
     // --- Cute Ghibli-style character ---
 
-    // Body (blue tunic)
-    const bodyMat = new ToonMat({
-      color: new THREE.Color(0x4a90d9)
-    });
+    // Body (blue tunic) - uses GhibliMaterial for cel-shaded look when WebGPU
+    const bodyMat = useWebGPU
+      ? new GhibliMaterial({ color: 0x4a90d9, shadowColor: 0x2a5090 })
+      : new ToonMat({ color: new THREE.Color(0x4a90d9) });
     const bodyGeom = new THREE.CapsuleGeometry(0.35, 0.5, 8, 16);
     this.body = new THREE.Mesh(bodyGeom, bodyMat);
     this.body.position.y = 0.65;
     this.body.castShadow = true;
     this.group.add(this.body);
 
-    // Head
-    const skinMat = new ToonMat({
-      color: new THREE.Color(0xffdbac)
-    });
+    // Head - uses GhibliMaterial for cel-shaded look when WebGPU
+    const skinMat = useWebGPU
+      ? new GhibliMaterial({ color: 0xffdbac, shadowColor: 0xd4a880 })
+      : new ToonMat({ color: new THREE.Color(0xffdbac) });
     const headGeom = new THREE.SphereGeometry(0.32, 16, 12);
     this.head = new THREE.Mesh(headGeom, skinMat);
     this.head.position.y = 1.35;
@@ -111,10 +112,10 @@ export class Character {
     rightCheek.scale.set(1, 0.6, 0.5);
     this.group.add(rightCheek);
 
-    // Straw hat (Ghibli vibe)
-    const hatMat = new ToonMat({
-      color: new THREE.Color(0xdaa520)
-    });
+    // Straw hat (Ghibli vibe) - uses GhibliMaterial when WebGPU
+    const hatMat = useWebGPU
+      ? new GhibliMaterial({ color: 0xdaa520 })
+      : new ToonMat({ color: new THREE.Color(0xdaa520) });
 
     // Hat brim
     const brimGeom = new THREE.CylinderGeometry(0.48, 0.48, 0.04, 18);
