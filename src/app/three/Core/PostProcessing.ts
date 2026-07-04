@@ -4,7 +4,7 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
-import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+// OutputPass removed — renderer handles tone mapping and output encoding natively.
 import {
   VignetteShader,
   FilmGrainShader,
@@ -16,8 +16,10 @@ type AnyRenderer = THREE.WebGPURenderer | WebGLRenderer;
 /**
  * Post-processing pipeline.
  *
- * WebGPU: Direct render — tone mapping on renderer, materials do the heavy lifting.
+ * Attempts EffectComposer on both WebGPU and WebGL.
+ * WebGPU: Three.js r171+ WebGPURenderer supports EffectComposer via GLSL-to-WGSL compilation.
  * WebGL: EffectComposer with bloom + vignette + grain + color grading.
+ * Falls back to direct render if EffectComposer fails to initialize.
  */
 export class PostProcessing {
   private renderer: AnyRenderer;
@@ -25,7 +27,7 @@ export class PostProcessing {
   private camera: THREE.PerspectiveCamera;
   private useWebGPU: boolean;
 
-  // WebGL-only EffectComposer
+  // EffectComposer (used on both WebGPU and WebGL when available)
   private composer: EffectComposer | null = null;
   private filmGrainPass: ShaderPass | null = null;
 
@@ -43,16 +45,11 @@ export class PostProcessing {
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.15;
 
-    if (this.useWebGPU) {
-      // WebGPU: direct render, tone mapping handled by renderer
-      console.log('PostProcessing: WebGPU — direct render with ACES tone mapping');
-    } else {
-      // WebGL: full EffectComposer pipeline
-      this.buildWebGLComposer();
-    }
+    // Attempt EffectComposer on both WebGPU and WebGL
+    this.buildComposer();
   }
 
-  private buildWebGLComposer(): void {
+  private buildComposer(): void {
     try {
       const size = new THREE.Vector2();
       this.renderer.getSize(size);
@@ -87,12 +84,13 @@ export class PostProcessing {
       colorGradingPass.uniforms.contrast.value = 1.02;
       this.composer.addPass(colorGradingPass);
 
-      // Output
-      this.composer.addPass(new OutputPass());
+      // Note: OutputPass removed — renderer handles tone mapping and output encoding
+      // on both WebGPU and WebGL. OutputPass would double-apply tone mapping.
 
-      console.log('PostProcessing: WebGL EffectComposer pipeline ready');
+      const mode = this.useWebGPU ? 'WebGPU' : 'WebGL';
+      console.log(`PostProcessing: ${mode} EffectComposer pipeline ready (bloom + vignette + grain + color grading)`);
     } catch (err) {
-      console.warn('PostProcessing: EffectComposer failed, falling back:', err);
+      console.warn('PostProcessing: EffectComposer failed, falling back to direct render:', err);
       this.composer = null;
     }
   }
